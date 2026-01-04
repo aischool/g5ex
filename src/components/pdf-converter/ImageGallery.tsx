@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, Eye, ExternalLink, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,21 +34,70 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
             } catch (error) {
                 if ((error as any).name === "AbortError") return;
                 console.error("Failed to save file:", error);
-                performStandardDownload(image);
+                // Fallback to standard download if showSaveFilePicker fails or is not supported
+                const link = document.createElement("a");
+                link.href = image.url;
+                link.download = `page-${image.pageNumber}.${image.format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
         } else {
-            performStandardDownload(image);
+            // Fallback for browsers not supporting showSaveFilePicker
+            const link = document.createElement("a");
+            link.href = image.url;
+            link.download = `page-${image.pageNumber}.${image.format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     };
 
-    const performStandardDownload = (image: ConvertedImage) => {
-        const link = document.createElement("a");
-        link.href = image.url;
-        link.download = `page-${image.pageNumber}.${image.format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleNext = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedImage) return;
+        const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+        if (currentIndex < images.length - 1) {
+            setSelectedImage(images[currentIndex + 1]);
+        }
     };
+
+    const handlePrev = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedImage) return;
+        const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+        if (currentIndex > 0) {
+            setSelectedImage(images[currentIndex - 1]);
+        }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (!selectedImage) return;
+        if (e.key === 'ArrowRight') {
+            const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+            if (currentIndex < images.length - 1) {
+                setSelectedImage(images[currentIndex + 1]);
+            }
+        } else if (e.key === 'ArrowLeft') {
+            const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+            if (currentIndex > 0) {
+                setSelectedImage(images[currentIndex - 1]);
+            }
+        } else if (e.key === 'Escape') {
+            setSelectedImage(null);
+        }
+    };
+
+    // Add keyboard event listener
+    useEffect(() => {
+        if (selectedImage) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [selectedImage, images]);
+
 
     return (
         <>
@@ -130,13 +179,36 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
                             </Button>
                         </div>
 
-                        {/* Image Container */}
-                        <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-muted/20 rounded-xl border border-border/20">
+                        {/* Image Container with Navigation */}
+                        <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-muted/20 rounded-xl border border-border/20 relative group/modal">
+
+                            {/* Previous Button */}
+                            {images.findIndex(img => img.id === selectedImage.id) > 0 && (
+                                <button
+                                    onClick={handlePrev}
+                                    className="absolute left-4 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm opacity-0 group-hover/modal:opacity-100"
+                                    title="Previous (Left Arrow)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                                </button>
+                            )}
+
                             <img
                                 src={selectedImage.url}
                                 alt={`Page ${selectedImage.pageNumber}`}
                                 className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
                             />
+
+                            {/* Next Button */}
+                            {images.findIndex(img => img.id === selectedImage.id) < images.length - 1 && (
+                                <button
+                                    onClick={handleNext}
+                                    className="absolute right-4 z-20 p-3 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all backdrop-blur-sm opacity-0 group-hover/modal:opacity-100"
+                                    title="Next (Right Arrow)"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                                </button>
+                            )}
                         </div>
 
                         {/* Modal Footer */}

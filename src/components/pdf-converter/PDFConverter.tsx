@@ -10,6 +10,7 @@ import type { ConversionProgress as ConversionProgressType, ConvertedImage, Conv
 export function PDFConverter() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pageRange, setPageRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
+    const [maskWatermark, setMaskWatermark] = useState<boolean>(true);
     const [progress, setProgress] = useState<ConversionProgressType>({
         currentPage: 0,
         totalPages: 0,
@@ -24,6 +25,7 @@ export function PDFConverter() {
         setSelectedFile(file);
         setImages([]);
         setPageRange({ start: "", end: "" });
+        setMaskWatermark(true);
         setTotalPages(0);
         setProgress({
             currentPage: 0,
@@ -64,6 +66,7 @@ export function PDFConverter() {
                     scale: (options.dpi || 150) / 72, // Convert DPI to scale
                     quality: (options.quality || 90) / 100,
                     pageRange: (start || end) ? { start: start || 1, end: end || 9999 } : undefined,
+                    maskWatermark: maskWatermark,
                 },
                 (current, total) => {
                     setProgress({
@@ -178,6 +181,19 @@ export function PDFConverter() {
                                     />
                                     {totalPages > 0 && <p className="text-[10px] text-muted-foreground mt-1 text-right">Total: {totalPages} pages</p>}
                                 </div>
+                            </div>
+
+                            <div className="flex items-center space-x-2 bg-background/50 p-3 rounded-xl border border-border/50">
+                                <input
+                                    type="checkbox"
+                                    id="mask-watermark"
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    checked={maskWatermark}
+                                    onChange={(e) => setMaskWatermark(e.target.checked)}
+                                />
+                                <Label htmlFor="mask-watermark" className="text-sm font-medium cursor-pointer">
+                                    Remove Bottom Watermark (e.g. NotebookLM)
+                                </Label>
                             </div>
                         </div>
 
